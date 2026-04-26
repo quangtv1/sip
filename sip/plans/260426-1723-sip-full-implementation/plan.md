@@ -29,7 +29,7 @@ React 18 + Ant Design 5 | Node.js + Express 4 | MongoDB | BullMQ + Redis | MinIO
 | 4 | [Workflow & RBAC](phase-04-workflow-rbac.md) | 80h | Complete (2026-04-26) | State machine, approval, audit log integration |
 | 5 | [SIP Packaging](phase-05-sip-packaging.md) | 120h | Complete (2026-04-26) | METS/EAD/PREMIS XML, checksums, BullMQ jobs |
 | 6 | [Storage & UX Polish](phase-06-storage-ux-polish.md) | 80h | Complete (2026-04-26) | MinIO integration, SSE progress, notifications |
-| 7 | [Dashboard & Admin](phase-07-dashboard-admin.md) | 100h | Pending | Stats, SIP viewer, user mgmt, audit viewer |
+| 7 | [Dashboard & Admin](phase-07-dashboard-admin.md) | 100h | Complete (2026-04-26) | Stats, SIP viewer, user mgmt, audit viewer |
 | 8 | [Testing & Hardening](phase-08-testing-hardening.md) | 80h | Pending | Unit, integration, E2E, security audit |
 
 ## Dependency Chain

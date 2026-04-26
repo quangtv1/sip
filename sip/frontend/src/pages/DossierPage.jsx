@@ -20,7 +20,7 @@ import apiClient from '../config/api-client.js';
 
 export default function DossierPage() {
   const { id: routeId } = useParams();
-  const { dossier, setDossier, loading, uploadZip, uploadFolder, validate, save } = useDossier();
+  const { dossier, setDossier, loading, uploadZip, uploadFolder, validate, save, uploadProgress } = useDossier();
   const [fetchingById, setFetchingById] = useState(false);
 
   // Load dossier by ID when navigating from QueueView
@@ -158,6 +158,7 @@ export default function DossierPage() {
         uploadZip={uploadZip}
         uploadFolder={uploadFolder}
         loading={loading}
+        uploadProgress={uploadProgress}
       />
     );
   }

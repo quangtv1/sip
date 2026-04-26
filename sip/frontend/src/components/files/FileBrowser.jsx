@@ -13,6 +13,7 @@ import { List, Select, Input, Spin, Alert, Typography, Space } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 import apiClient from '../../config/api-client.js';
 import FileRow from './FileRow.jsx';
+import SipViewerModal from '../sip-viewer/SipViewerModal.jsx';
 
 const { Text } = Typography;
 const { Option } = Select;
@@ -25,6 +26,7 @@ export default function FileBrowser({ bucket: initialBucket = 'sip-files', prefi
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [sipViewerPath, setSipViewerPath] = useState(null);
 
   const fetchFiles = useCallback(async () => {
     setLoading(true);
@@ -112,11 +114,18 @@ export default function FileBrowser({ bucket: initialBucket = 'sip-files', prefi
                 bucket={bucket}
                 onPreview={handlePreview}
                 onDownload={handleDownload}
+                onViewSip={file.name?.endsWith('.zip') ? () => setSipViewerPath(file.name) : undefined}
               />
             </List.Item>
           )}
         />
       )}
+
+      <SipViewerModal
+        open={!!sipViewerPath}
+        objectPath={sipViewerPath}
+        onClose={() => setSipViewerPath(null)}
+      />
     </Space>
   );
 }

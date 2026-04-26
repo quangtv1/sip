@@ -9,7 +9,7 @@
  *   onDownload {Function(file)}
  */
 import { Button, Space, Typography, Tooltip } from 'antd';
-import { EyeOutlined, DownloadOutlined, FileZipOutlined, FilePdfOutlined } from '@ant-design/icons';
+import { EyeOutlined, DownloadOutlined, FileZipOutlined, FilePdfOutlined, FolderViewOutlined } from '@ant-design/icons';
 
 const { Text } = Typography;
 
@@ -26,7 +26,7 @@ function fileIcon(name = '') {
   return null;
 }
 
-export default function FileRow({ file, onPreview, onDownload }) {
+export default function FileRow({ file, onPreview, onDownload, onViewSip }) {
   const name = file.name?.split('/').pop() || file.name;
 
   return (
@@ -46,6 +46,11 @@ export default function FileRow({ file, onPreview, onDownload }) {
         )}
       </Space>
       <Space size={4}>
+        {onViewSip && (
+          <Tooltip title="Xem nội dung SIP">
+            <Button size="small" icon={<FolderViewOutlined />} onClick={onViewSip} />
+          </Tooltip>
+        )}
         <Tooltip title="Xem trước">
           <Button size="small" icon={<EyeOutlined />} onClick={() => onPreview(file)} />
         </Tooltip>

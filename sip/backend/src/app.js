@@ -19,6 +19,8 @@ const packageRoutes = require('./routes/package-routes');
 const fileRoutes = require('./routes/file-routes');
 const configRoutes = require('./routes/config-routes');
 const notificationRoutes = require('./routes/notification-routes');
+const dashboardRoutes = require('./routes/dashboard-routes');
+const logRoutes = require('./routes/log-routes');
 const errorHandlerMiddleware = require('./middleware/error-handler-middleware');
 
 const app = express();
@@ -50,6 +52,8 @@ app.use('/api/package', packageRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/config', configRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/stats', dashboardRoutes);
+app.use('/api/logs', logRoutes);
 
 // 404 for unmatched API routes
 app.use('/api/*', (req, res) => {

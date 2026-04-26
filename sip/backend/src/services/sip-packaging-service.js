@@ -6,10 +6,10 @@
  *   3. Generate METS.xml, EAD.xml, PREMIS.xml
  *   4. Compute SHA-256 checksums + write checksums.csv
  *   5. Create ZIP archive
- *   6. Transition dossier state: APPROVED → PACKAGING → DONE
- *   7. Audit log on completion / failure
- *
- * MinIO upload deferred to Phase 6 — ZIP saved to temp for now.
+ *   6. Upload ZIP to MinIO
+ *   7. Transition dossier state: APPROVED → PACKAGING → DONE
+ *   8. Audit log on completion / failure
+ *   9. Cleanup temp working directory
  */
 const fs = require('fs');
 const path = require('path');
@@ -18,6 +18,8 @@ const os = require('os');
 const Dossier = require('../models/dossier-model');
 const auditLogService = require('./audit-log-service');
 const { transition } = require('./workflow-engine');
+const minioStorageService = require('./minio-storage-service');
+const config = require('../config/index');
 const { generateMets } = require('./mets-generator');
 const { generateEad } = require('./ead-generator');
 const { generatePremis } = require('./premis-generator');
@@ -127,7 +129,8 @@ async function create(dossierId, options = {}, onProgress = () => {}) {
 
     // Create ZIP
     const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    const zipPath = path.join(workDir, `SIP_${safeMaHoSo}_${dateStr}.zip`);
+    const zipFilename = `SIP_${safeMaHoSo}_${dateStr}.zip`;
+    const zipPath = path.join(workDir, zipFilename);
     await createZip(sipDir, zipPath);
 
     if (!verifyZip(zipPath)) {
@@ -135,9 +138,19 @@ async function create(dossierId, options = {}, onProgress = () => {}) {
     }
     onProgress(90);
 
+    // Upload ZIP to MinIO
+    const minioObjectPath = `${dateStr.slice(0, 4)}/${dateStr.slice(4, 6)}/${zipFilename}`;
+    await minioStorageService.uploadFile(
+      config.MINIO_BUCKET_SIP,
+      minioObjectPath,
+      zipPath,
+      'application/zip'
+    );
+    onProgress(95);
+
     // Transition: PACKAGING → DONE
     await transition(dossierId, DOSSIER_STATES.DONE, null, {
-      sipZipPath: zipPath,
+      sipZipPath: minioObjectPath,
       packagedAt: new Date(),
     });
 
@@ -146,22 +159,22 @@ async function create(dossierId, options = {}, onProgress = () => {}) {
       userID: 'system',
       dossierID: String(dossierId),
       resultStatus: 'SUCCESS',
-      details: { zipPath, maHoSo, pdfCount: pdfMeta.length },
+      details: { minioObjectPath, maHoSo, pdfCount: pdfMeta.length },
     });
 
     onProgress(100);
-    logger.info('SIP packaging complete', { dossierId, maHoSo, zipPath });
-    // NOTE: workDir intentionally kept alive — zipPath must persist until Phase 6 MinIO upload.
-    // Phase 6 will upload the ZIP then call cleanupDir(workDir).
+    logger.info('SIP packaging complete', { dossierId, maHoSo, minioObjectPath });
 
-    return { zipPath, maHoSo };
+    // Cleanup local temp directory now that ZIP is in MinIO
+    cleanupDir(workDir);
+
+    // Return minioObjectPath (not a local file path — workDir was already cleaned up)
+    return { minioObjectPath, maHoSo };
   } catch (err) {
-    // On failure: revert dossier back to APPROVED so operator can retry
+    // On failure: revert dossier back to APPROVED so operator can retry.
+    // Use workflow-engine.transition() for audit logging and concurrency safety.
     try {
-      const current = await Dossier.findById(dossierId);
-      if (current?.state === DOSSIER_STATES.PACKAGING) {
-        await Dossier.findByIdAndUpdate(dossierId, { $set: { state: DOSSIER_STATES.APPROVED } });
-      }
+      await transition(dossierId, DOSSIER_STATES.APPROVED, null, {});
     } catch (revertErr) {
       logger.error('Failed to revert dossier state after packaging failure', { revertErr: revertErr.message });
     }

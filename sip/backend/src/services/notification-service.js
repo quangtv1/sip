@@ -1,13 +1,13 @@
 /**
- * Notification service — stub for Phase 4.
- * Persists in-app notifications to MongoDB `notifications` collection.
- * WebSocket push deferred to Phase 6.
+ * Notification service.
+ * Persists in-app notifications to MongoDB and pushes via WebSocket.
  */
 const Notification = require('../models/notification-model');
+const notificationWs = require('../websocket/notification-ws');
 const logger = require('../utils/logger');
 
 /**
- * Store a notification for a user.
+ * Store a notification for a user and push via WebSocket if connected.
  * Fire-and-forget safe — never throws; errors are logged only.
  *
  * @param {string} userId - Recipient user email or ID
@@ -17,6 +17,7 @@ const logger = require('../utils/logger');
 async function notify(userId, event, data = {}) {
   try {
     await Notification.create({ userId, event, data });
+    notificationWs.push(userId, event, data);
   } catch (err) {
     logger.error('Failed to write notification', { userId, event, error: err.message });
   }

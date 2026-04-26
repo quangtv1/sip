@@ -7,11 +7,12 @@
 import { useState, useRef } from 'react';
 import { Upload, Space, Typography, Alert, Spin, Segmented } from 'antd';
 import { InboxOutlined, FolderOpenOutlined, FileZipOutlined } from '@ant-design/icons';
+import UploadProgress from './UploadProgress.jsx';
 
 const { Dragger } = Upload;
 const { Text, Title } = Typography;
 
-export default function UploadPanel({ onUploaded, uploadZip, uploadFolder, loading, error }) {
+export default function UploadPanel({ onUploaded, uploadZip, uploadFolder, loading, error, uploadProgress }) {
   const [mode, setMode] = useState('zip');
   const folderInputRef = useRef(null);
 
@@ -55,9 +56,17 @@ export default function UploadPanel({ onUploaded, uploadZip, uploadFolder, loadi
         style={{ marginBottom: 16 }}
       />
 
-      {error && <Alert message={error} type="error" showIcon style={{ marginBottom: 12 }} closable />}
+      {error && !uploadProgress?.step && (
+        <Alert message={error} type="error" showIcon style={{ marginBottom: 12 }} closable />
+      )}
 
-      <Spin spinning={loading} tip="Đang xử lý...">
+      {uploadProgress?.step && (
+        <div style={{ marginBottom: 16 }}>
+          <UploadProgress {...uploadProgress} />
+        </div>
+      )}
+
+      <Spin spinning={loading && !uploadProgress?.step} tip="Đang xử lý...">
         {mode === 'zip' ? (
           <Dragger
             name="dossierZip"

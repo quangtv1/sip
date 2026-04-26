@@ -16,6 +16,9 @@ const validateRoutes = require('./routes/validate-routes');
 const saveRoutes = require('./routes/save-routes');
 const dossierRoutes = require('./routes/dossier-routes');
 const packageRoutes = require('./routes/package-routes');
+const fileRoutes = require('./routes/file-routes');
+const configRoutes = require('./routes/config-routes');
+const notificationRoutes = require('./routes/notification-routes');
 const errorHandlerMiddleware = require('./middleware/error-handler-middleware');
 
 const app = express();
@@ -26,7 +29,11 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
-app.use(morgan('combined', { stream: { write: (msg) => logger.info(msg.trim()) } }));
+// Redact JWT token from WS upgrade request logs to prevent credential leakage
+app.use(morgan('combined', {
+  stream: { write: (msg) => logger.info(msg.trim()) },
+  skip: (req) => req.url.startsWith('/ws/'),
+}));
 // Global 100kb limit — upload routes set their own higher limit via multer
 app.use(express.json({ limit: '100kb' }));
 app.use(express.urlencoded({ extended: true, limit: '100kb' }));
@@ -40,6 +47,9 @@ app.use('/api/validate', validateRoutes);
 app.use('/api/save', saveRoutes);
 app.use('/api/dossiers', dossierRoutes);
 app.use('/api/package', packageRoutes);
+app.use('/api/files', fileRoutes);
+app.use('/api/config', configRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // 404 for unmatched API routes
 app.use('/api/*', (req, res) => {
@@ -54,11 +64,16 @@ async function start() {
   try {
     await connectDatabase();
 
+    // Initialise MinIO — load config from DB or env, ensure buckets exist
+    const minioStorageService = require('./services/minio-storage-service');
+    await minioStorageService.reloadConfig();
+    await minioStorageService.ensureBuckets();
+
     // Start SIP packaging BullMQ worker
     const { startWorker } = require('./jobs/packaging-job-processor');
     startWorker();
 
-    app.listen(config.PORT, () => {
+    const server = app.listen(config.PORT, () => {
       logger.info('Backend started', {
         port: config.PORT,
         env: config.NODE_ENV,
@@ -66,6 +81,10 @@ async function start() {
         mongoHost: require('mongoose').connection.host || 'connecting...',
       });
     });
+
+    // Attach WebSocket server for real-time notifications
+    const notificationWs = require('./websocket/notification-ws');
+    notificationWs.attach(server);
   } catch (err) {
     logger.error('Failed to start backend', { error: err.message });
     process.exit(1);

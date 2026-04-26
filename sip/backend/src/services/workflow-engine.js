@@ -6,8 +6,19 @@
  */
 const Dossier = require('../models/dossier-model');
 const auditLogService = require('./audit-log-service');
-const { DOSSIER_STATES, ROLES } = require('../utils/constants');
+const { DOSSIER_STATES, ROLES, AUDIT_ACTIONS } = require('../utils/constants');
 const { ValidationError, ForbiddenError } = require('../utils/app-error');
+
+// Map target state → audit action (DOSSIER_STATES values ≠ AUDIT_ACTIONS values)
+const STATE_TO_AUDIT_ACTION = {
+  [DOSSIER_STATES.VALIDATING]: AUDIT_ACTIONS.VALIDATE,
+  [DOSSIER_STATES.VALIDATED]:  AUDIT_ACTIONS.VALIDATE,
+  [DOSSIER_STATES.APPROVED]:   AUDIT_ACTIONS.APPROVE,
+  [DOSSIER_STATES.REJECTED]:   AUDIT_ACTIONS.REJECT,
+  [DOSSIER_STATES.PACKAGING]:  AUDIT_ACTIONS.PACKAGE,
+  [DOSSIER_STATES.DONE]:       AUDIT_ACTIONS.PACKAGE,
+  [DOSSIER_STATES.UPLOAD]:     AUDIT_ACTIONS.UPLOAD,
+};
 
 // Allowed state transitions
 const TRANSITIONS = {
@@ -82,7 +93,7 @@ async function transition(dossierId, toState, actor, extra = {}) {
   }
 
   await auditLogService.log({
-    action: toState,
+    action: STATE_TO_AUDIT_ACTION[toState] || AUDIT_ACTIONS.UPLOAD,
     userID: actor?.email || 'system',
     dossierID: String(dossierId),
     resultStatus: 'SUCCESS',

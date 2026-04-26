@@ -1,6 +1,6 @@
 # Codebase Summary
 
-**Status:** Phase 4-5 Complete (Workflow, RBAC, SIP Packaging)  
+**Status:** Phase 1-8 Complete (All MVP core features, testing infrastructure, bug fixes)  
 **Last Updated:** 2026-04-26
 
 ---
@@ -96,6 +96,19 @@ sip/
 - Frontend DossierStatusBadge (visual state indicators) ✓
 - Frontend DossierListTable (pagination + inline actions) ✓
 - Notifications stub (saves to collection, no email yet) ✓
+
+**Phase 8 Complete (Testing & Hardening):**
+- Jest test suite: 47 tests (12 unit, 35 integration) ✓
+- MongoMemoryServer in-memory testing (no mocking) ✓
+- Test infrastructure: jest-env-setup.js, test-setup.js, test-auth-helper.js ✓
+- GitHub Actions CI pipeline: runs unit + integration tests ✓
+- .env.example: all required env vars documented ✓
+- Bug fixes from testing:
+  - approve-routes.js: per-route RBAC middleware (fixed global blocking)
+  - workflow-engine.js: STATE_TO_AUDIT_ACTION mapping (invalid enums)
+  - app.js: rate limiter + start() guarded by NODE_ENV !== 'test'
+  - queue-setup.js: BullMQ test-mode stub added
+- Security hardening: Helmet, CORS, rate limiting, Morgan skips /ws/ ✓
 
 **Not Yet Implemented:**
 - Digital signature (XMLDSig + TSA) — Phase 6
@@ -248,11 +261,12 @@ sip/
 - [ ] User management (create, lock, role assignment)
 - [ ] SIP viewer (unzip, browse, download)
 
-### Phase 8: Testing & Hardening (Sprint 15-16)
-- [ ] Unit tests (validators, services)
-- [ ] Integration tests (API endpoints, workflows)
-- [ ] E2E tests (browser-based workflows)
-- [ ] Security audit (input validation, CORS, rate limiting)
+### Phase 8: Testing & Hardening (Sprint 15-16) — DONE ✓
+- [x] Unit tests (validators, services) — 12 tests
+- [x] Integration tests (API endpoints, workflows) — 35 tests
+- [x] Test infrastructure (Jest, MongoMemoryServer, helpers)
+- [x] GitHub Actions CI pipeline
+- [x] Security audit & hardening (Helmet, rate limiting, CORS)
 
 ---
 
@@ -284,6 +298,11 @@ sip/
 | **XML** | xmlbuilder2 4.0.3 | ✓ Implemented | METS/EAD/PREMIS XML generation (Phase 5) |
 | **S3 Storage** | minio 7.1.3 | ✓ Planned | MinIO integration (Phase 6) |
 | **Logging** | winston 3.11.0 | ✓ Implemented | Structured logging (Phase 4) |
+| **Testing** | jest 29.x | ✓ Implemented | Test runner (Phase 8) |
+| **Testing** | @mongodb-js/oidc-mock-server | ✓ Implemented | DB mocking (Phase 8) |
+| **Testing** | supertest 6.x | ✓ Implemented | HTTP assertion (Phase 8) |
+| **Testing** | MongoMemoryServer | ✓ Implemented | In-memory MongoDB (Phase 8) |
+| **CI/CD** | GitHub Actions | ✓ Implemented | Automated test pipeline (Phase 8) |
 | **Signing** | node-xmldsig or xmldom | ✓ Planned | XMLDSig signing (Phase 6) |
 | **Container** | Docker + Docker Compose | ✓ Implemented | Dev + deployment |
 

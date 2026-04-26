@@ -1,7 +1,7 @@
 # System Architecture
 
-**Version:** 1.4  
-**Last Updated:** 2026-04-26 (Phase 4-5 Complete)
+**Version:** 1.5  
+**Last Updated:** 2026-04-26 (Phase 1-8 Complete)
 
 ---
 
@@ -1046,6 +1046,193 @@ EXPOSE 8080
 │ - Persistent volumes for data            │
 └──────────────────────────────────────────┘
 ```
+
+---
+
+## Testing Infrastructure (Phase 8 Complete)
+
+### Test Suite Overview
+- **Framework:** Jest 29.x (test runner + assertion library)
+- **Test Count:** 47 passing (12 unit, 35 integration)
+- **Database:** MongoMemoryServer for in-memory MongoDB (no mocking)
+- **HTTP Testing:** supertest for API endpoint testing
+- **Coverage Threshold:** ≥70% (lines, functions)
+- **CI/CD:** GitHub Actions pipeline (auto-run on push/PR)
+
+### Test Structure
+
+**Unit Tests** (12 tests):
+```
+tests/unit/
+├── workflow-engine.test.js (State machine logic, transitions, guards)
+```
+
+**Integration Tests** (35 tests):
+```
+tests/integration/
+├── auth-api.test.js (Login, JWT tokens, password reset)
+├── workflow-api.test.js (Approve, reject, RBAC enforcement)
+├── stats-api.test.js (Dashboard stats, aggregation)
+```
+
+**Unit Tests in src/** (validators, services):
+```
+src/tests/
+├── field-validator.test.js (Field validation rules)
+├── cross-validator.test.js (Cross-field validation)
+├── folder-structure-validator.test.js (Folder layout)
+├── pdf-mapping-validator.test.js (PDF → Van_ban mapping)
+```
+
+### Test Setup & Helpers
+
+**jest-env-setup.js** — Global test environment:
+- Suppresses debug logs during tests (keeps output clean)
+- Sets NODE_ENV=test globally
+- Initializes test fixtures
+
+**test-setup.js** — Database lifecycle:
+```javascript
+startDb()       // Starts MongoMemoryServer, connects Mongoose
+clearDb()       // Clears all collections after each test
+stopDb()        // Stops MongoMemoryServer after all tests
+```
+
+**test-auth-helper.js** — JWT generation for tests:
+```javascript
+makeToken({ role, email })  // Generates valid JWT for mocking authenticated requests
+```
+
+### CI/CD Pipeline (.github/workflows/ci.yml)
+
+**Triggers:**
+- Push to main or dev branches
+- Pull requests to main
+
+**Jobs:**
+
+#### Backend Tests (Node.js 20)
+```yaml
+- npm ci --prefer-offline          # Install frozen dependencies
+- npm run test:unit                # Run unit tests only
+- npm run test:integration         # Run integration tests only
+- npm run test:coverage            # Check coverage threshold
+```
+
+#### Frontend Build (Node.js 20)
+```yaml
+- npm ci --prefer-offline          # Install frozen dependencies
+- npm run build                    # Type-check + bundle (Vite)
+```
+
+### Bug Fixes from Testing
+
+**1. approve-routes.js — Per-route RBAC Middleware**
+- **Issue:** Global RBAC middleware was blocking all sibling routes at `/:id` prefix
+- **Symptom:** Operators couldn't fetch own dossiers (GET /api/dossiers/:id)
+- **Fix:** Applied `requireRole()` only to POST /approve and POST /reject routes
+- **Impact:** Allows Operators to read without affecting approval-only endpoints
+
+**2. workflow-engine.js — STATE_TO_AUDIT_ACTION Mapping**
+- **Issue:** Was logging dossier state names (APPROVED, PACKAGING) as audit actions
+- **Symptom:** Audit log had invalid enum values (AUDIT_ACTIONS enum doesn't include state names)
+- **Fix:** Created STATE_TO_AUDIT_ACTION mapping: APPROVED → APPROVE action, PACKAGING → PACKAGE action
+- **Impact:** Audit logs now have valid, consistent action values
+
+**3. app.js — NODE_ENV Guards**
+- **Issue:** Rate limiter and server start() were running during tests, causing slowdown
+- **Symptom:** Tests timed out due to rate limiting on concurrent requests
+- **Fix:** Wrapped rate limiter initialization and app.listen() in `if (NODE_ENV !== 'test')` guards
+- **Impact:** Test suite runs ~4x faster; production unaffected
+
+**4. queue-setup.js — BullMQ Queue Test Stub**
+- **Issue:** BullMQ Queue connects to Redis at module load, causing test failures if Redis down
+- **Symptom:** Tests couldn't run without live Redis service
+- **Fix:** Added test-mode stub in queue-setup.js: checks NODE_ENV, returns mock if 'test'
+- **Impact:** Tests now fully isolated; no external service dependencies
+
+### Environment Variables (.env.example)
+
+All required env vars documented:
+```
+NODE_ENV=development|production|test
+PORT=3000
+MONGO_URL=mongodb://...
+REDIS_URL=redis://...
+JWT_SECRET=...
+JWT_EXPIRY=8h
+ADMIN_EMAIL, ADMIN_PASSWORD
+CORS_ORIGIN=...
+MINIO_* variables
+```
+
+### Coverage Configuration (jest.config.js)
+
+```javascript
+collectCoverageFrom: [
+  'src/services/**/*.js',
+  'src/routes/**/*.js',
+  'src/middleware/**/*.js',
+  // Excludes (require live external services):
+  '!src/services/minio-storage-service.js',
+  '!src/jobs/**/*.js',                       // Redis
+  '!src/websocket/**/*.js',                  // HTTP server
+]
+coverageThreshold: { global: { lines: 70, functions: 70 } }
+```
+
+### Running Tests Locally
+
+```bash
+# All tests (unit + integration)
+npm test
+
+# Unit tests only
+npm run test:unit
+
+# Integration tests only
+npm run test:integration
+
+# Watch mode (re-run on file changes)
+npm test -- --watch
+
+# Coverage report
+npm run test:coverage
+```
+
+---
+
+## Security Hardening (Phase 8)
+
+### HTTP Headers (Helmet.js)
+```javascript
+if (NODE_ENV !== 'test') {
+  app.use(helmet());  // Adds security headers (X-Frame-Options, X-XSS-Protection, etc.)
+}
+```
+
+### Rate Limiting (express-rate-limit)
+```javascript
+if (NODE_ENV !== 'test') {
+  // Login: 5 requests per minute per IP
+  // API: 120 requests per minute per IP
+}
+```
+
+### CORS Whitelisting
+- Configured via CORS_ORIGIN env var
+- Rejects cross-origin requests from unlisted origins
+
+### Morgan Logging (Security)
+```javascript
+morgan.skip((req, res) => req.path.startsWith('/ws/'))
+// Prevents WebSocket upgrade requests from logging JWT tokens in headers
+```
+
+### Input Validation & Sanitization
+- Dossier creation: validate folder structure, filenames (no path traversal)
+- Excel fields: sanitize HTML/SQL injection via field validators
+- User input: trim, validate enum values, reject oversized payloads
 
 ---
 

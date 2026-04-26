@@ -1,0 +1,13 @@
+.git
+.gitignore
+.env
+*.log
+node_modules
+backend/node_modules
+frontend/node_modules
+dist
+build
+tmp
+temp
+.DS_Store
+*.md

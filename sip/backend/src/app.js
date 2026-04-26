@@ -3,6 +3,9 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
+const helmet = require('helmet');
+const compression = require('compression');
+const rateLimit = require('express-rate-limit');
 
 const config = require('./config/index');
 const { connectDatabase } = require('./config/database');
@@ -26,11 +29,31 @@ const errorHandlerMiddleware = require('./middleware/error-handler-middleware');
 const app = express();
 
 // --- Middleware chain ---
+
+// Security headers
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' }, // allow presigned MinIO URLs
+}));
+
+// Gzip compression for API responses
+app.use(compression());
+
+// CORS — origins from env, comma-separated list
+const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost').split(',').map((o) => o.trim());
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost',
+  origin: allowedOrigins.length === 1 ? allowedOrigins[0] : allowedOrigins,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+
+// Rate limiting — stricter for auth, relaxed for API.
+// Disabled in test environment so repeated test requests don't trip the limiter.
+if (process.env.NODE_ENV !== 'test') {
+  const authLimiter = rateLimit({ windowMs: 60_000, max: 5,   message: { success: false, error: { code: 'RATE_LIMITED', message: 'Quá nhiều yêu cầu đăng nhập, thử lại sau 1 phút' } } });
+  const apiLimiter  = rateLimit({ windowMs: 60_000, max: 120, message: { success: false, error: { code: 'RATE_LIMITED', message: 'Quá nhiều yêu cầu, thử lại sau 1 phút' } } });
+  app.use('/api/auth/login', authLimiter);
+  app.use('/api/', apiLimiter);
+}
 // Redact JWT token from WS upgrade request logs to prevent credential leakage
 app.use(morgan('combined', {
   stream: { write: (msg) => logger.info(msg.trim()) },
@@ -95,6 +118,10 @@ async function start() {
   }
 }
 
-start();
+// In test environment, tests own the DB connection and lifecycle.
+// Skip startup so MongoMemoryServer (test-setup.js) controls mongoose.
+if (process.env.NODE_ENV !== 'test') {
+  start();
+}
 
 module.exports = app;

@@ -1,0 +1,73 @@
+version: '3.9'
+
+services:
+  nginx:
+    build: ./nginx
+    ports:
+      - '8080:80'
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - sip-network
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    ports:
+      - '127.0.0.1:3000:3000'
+    env_file: .env
+    depends_on:
+      - mongodb
+      - redis
+      - minio
+    networks:
+      - sip-network
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'node', '-e', "require('http').get('http://localhost:3000/api/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  mongodb:
+    image: mongo:7.0
+    # No host port binding — accessible only within sip-network
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - sip-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.2-alpine
+    # No host port binding — accessible only within sip-network
+    volumes:
+      - redis-data:/data
+    networks:
+      - sip-network
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:latest
+    ports:
+      - '127.0.0.1:9001:9001'
+    volumes:
+      - minio-data:/data
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+    command: server /data --console-address ":9001"
+    networks:
+      - sip-network
+    restart: unless-stopped
+
+volumes:
+  mongo-data:
+  redis-data:
+  minio-data:
+
+networks:
+  sip-network:
+    driver: bridge

@@ -14,14 +14,15 @@ const Dossier = require('../models/dossier-model');
 
 const router = express.Router({ mergeParams: true });
 
-// Both routes require Approver or Admin
-router.use(authMiddleware, requireRole(ROLES.APPROVER, ROLES.ADMIN));
+// RBAC is applied per-route (not globally) to avoid intercepting sibling GET routes
+// that are handled by dossier-routes.js at the same /:id prefix.
+const approveGuard = [authMiddleware, requireRole(ROLES.APPROVER, ROLES.ADMIN)];
 
 /**
  * POST /api/dossiers/:id/approve
  * Approve a VALIDATED dossier with no ERROR-level issues.
  */
-router.post('/approve', async (req, res, next) => {
+router.post('/approve', ...approveGuard, async (req, res, next) => {
   try {
     const dossier = await Dossier.findById(req.params.id);
     if (!dossier) return next(new NotFoundError('Không tìm thấy hồ sơ'));
@@ -53,7 +54,7 @@ router.post('/approve', async (req, res, next) => {
  * POST /api/dossiers/:id/reject
  * Body: { reason: string } — reason must be ≥10 characters.
  */
-router.post('/reject', async (req, res, next) => {
+router.post('/reject', ...approveGuard, async (req, res, next) => {
   try {
     const { reason } = req.body;
     if (!reason || String(reason).trim().length < 10) {

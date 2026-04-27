@@ -63,7 +63,7 @@ router.get('/', requireRole(ROLES.OPERATOR, ROLES.APPROVER, ROLES.ADMIN, ROLES.A
 
     const [items, total] = await Promise.all([
       Dossier.find(query)
-        .select('maHoSo state uploadedBy createdAt updatedAt validationResult.errorCount validationResult.warningCount validationResult.valid approvedBy rejectedBy rejectionReason')
+        .select('maHoSo state uploadedBy createdAt updatedAt validationResult.errorCount validationResult.warningCount validationResult.valid approvedBy rejectedBy rejectionReason hoSoRow.tieuDeHoSo pdfFiles vanBanRows')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limitNum)
@@ -77,6 +77,9 @@ router.get('/', requireRole(ROLES.OPERATOR, ROLES.APPROVER, ROLES.ADMIN, ROLES.A
         items: items.map((d) => ({
           dossierId: d._id,
           maHoSo: d.maHoSo,
+          tieuDeHoSo: d.hoSoRow?.tieuDeHoSo ?? '',
+          pdfCount: (d.pdfFiles || []).length,
+          vanBanCount: (d.vanBanRows || []).length,
           state: d.state,
           uploadedBy: d.uploadedBy,
           createdAt: d.createdAt,
@@ -136,6 +139,20 @@ router.get('/:id', requireRole(ROLES.OPERATOR, ROLES.APPROVER, ROLES.ADMIN, ROLE
         updatedAt: dossier.updatedAt,
       },
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * DELETE /api/dossiers/:id  — Admin only
+ */
+router.delete('/:id', requireRole(ROLES.ADMIN), async (req, res, next) => {
+  try {
+    const dossier = await Dossier.findById(req.params.id).lean();
+    if (!dossier) return next(new NotFoundError('Không tìm thấy hồ sơ'));
+    await Dossier.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
   } catch (err) {
     next(err);
   }

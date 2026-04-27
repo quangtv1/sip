@@ -16,23 +16,23 @@ function renderPanel(props = {}) {
 }
 
 describe('UploadPanel — mode toggle', () => {
-  it('renders ZIP mode by default', () => {
+  it('renders folder mode by default', () => {
     renderPanel();
-    expect(screen.getByText(/Kéo thả file ZIP/)).toBeInTheDocument();
+    expect(screen.getByText(/Kéo thả thư mục hồ sơ/)).toBeInTheDocument();
   });
 
-  it('switches to folder mode when Thư mục is clicked', () => {
+  it('switches to ZIP mode when File ZIP is clicked', () => {
     renderPanel();
-    fireEvent.click(screen.getByText('Thư mục'));
-    expect(screen.getByText(/Click để chọn thư mục hồ sơ/)).toBeInTheDocument();
-    expect(screen.queryByText(/Kéo thả file ZIP/)).not.toBeInTheDocument();
-  });
-
-  it('switches back to ZIP mode from folder mode', () => {
-    renderPanel();
-    fireEvent.click(screen.getByText('Thư mục'));
     fireEvent.click(screen.getByText('File ZIP'));
     expect(screen.getByText(/Kéo thả file ZIP/)).toBeInTheDocument();
+    expect(screen.queryByText(/Kéo thả thư mục/)).not.toBeInTheDocument();
+  });
+
+  it('switches back to folder mode from ZIP mode', () => {
+    renderPanel();
+    fireEvent.click(screen.getByText('File ZIP'));
+    fireEvent.click(screen.getByText('Thư mục'));
+    expect(screen.getByText(/Kéo thả thư mục hồ sơ/)).toBeInTheDocument();
   });
 });
 
@@ -61,7 +61,6 @@ describe('UploadPanel — upload progress', () => {
     renderPanel({
       uploadProgress: { step: 'validate', progress: 60, detail: 'Đang kiểm tra...', summary: null, error: null, done: false },
     });
-    // UploadProgress renders the progress bar — check by step indicator text
     expect(screen.getByText(/Đang kiểm tra/)).toBeInTheDocument();
   });
 });
@@ -69,11 +68,18 @@ describe('UploadPanel — upload progress', () => {
 describe('UploadPanel — static content', () => {
   it('renders page heading', () => {
     renderPanel();
-    expect(screen.getByText('Tải lên hồ sơ')).toBeInTheDocument();
+    expect(screen.getByText('Đóng gói SIP')).toBeInTheDocument();
+  });
+
+  it('shows folder structure hint in folder mode', () => {
+    renderPanel();
+    expect(screen.getByText(/Attachment/)).toBeInTheDocument();
+    expect(screen.getByText(/Metadata/)).toBeInTheDocument();
   });
 
   it('shows folder structure hint in ZIP mode', () => {
     renderPanel();
+    fireEvent.click(screen.getByText('File ZIP'));
     expect(screen.getByText(/Attachment/)).toBeInTheDocument();
     expect(screen.getByText(/Metadata/)).toBeInTheDocument();
   });

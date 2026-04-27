@@ -65,7 +65,7 @@ export default function AuditLogPage() {
 
   return (
     <div>
-      <Title level={4} style={{ marginBottom: 16 }}>Nhật ký kiểm toán</Title>
+      <Title level={4} style={{ marginBottom: 16 }}>Nhật ký</Title>
       {error && <Alert type="error" message={error} showIcon style={{ marginBottom: 12 }} />}
       <AuditLogTable
         items={items}

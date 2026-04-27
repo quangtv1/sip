@@ -171,12 +171,15 @@ router.post('/folder', upload.array('files'), async (req, res, next) => {
 });
 
 async function processUpload(req, res, tempDir, fileList) {
-  const normFileList = normaliseFileList(fileList);
-
-  const excelRel = normFileList.find(
-    (f) => f.toLowerCase().startsWith('metadata/') && f.toLowerCase().endsWith('.xlsx')
+  // Find excel using ORIGINAL paths (pre-normalisation) so the disk read succeeds.
+  // normaliseFileList strips a root-folder prefix from logical paths but the files
+  // on disk still live at their original paths.
+  const excelOrigRel = fileList.find(
+    (f) => f.toLowerCase().endsWith('.xlsx') && f.toLowerCase().includes('metadata'),
   );
-  const excelBuffer = excelRel ? fs.readFileSync(path.join(tempDir, excelRel)) : null;
+  const excelBuffer = excelOrigRel ? fs.readFileSync(path.join(tempDir, excelOrigRel)) : null;
+
+  const normFileList = normaliseFileList(fileList);
 
   const validationResult = await runValidation({ fileList: normFileList, excelBuffer });
   const maHoSo = validationResult.hoSoRow ? validationResult.hoSoRow.maHoSo || null : null;
@@ -221,6 +224,7 @@ async function processUpload(req, res, tempDir, fileList) {
       state: dossier.state,
       hoSoRow: validationResult.hoSoRow,
       vanBanRows: validationResult.vanBanRows,
+      pdfFiles: dossier.pdfFiles,
       validation: {
         valid: validationResult.valid,
         errorCount: validationResult.errorCount,

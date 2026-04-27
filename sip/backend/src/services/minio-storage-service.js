@@ -144,4 +144,15 @@ async function downloadStream(bucket, objectPath) {
   return client.getObject(bucket, objectPath);
 }
 
-module.exports = { reloadConfig, ensureBuckets, uploadFile, getPresignedUrl, listFiles, downloadStream, getClient };
+/**
+ * Delete a single object from MinIO.
+ * @param {string} bucket
+ * @param {string} objectPath
+ */
+async function deleteFile(bucket, objectPath) {
+  const client = getClient();
+  await client.removeObject(bucket, objectPath);
+  logger.info('Deleted from MinIO', { bucket, objectPath });
+}
+
+module.exports = { reloadConfig, ensureBuckets, uploadFile, getPresignedUrl, listFiles, downloadStream, deleteFile, getClient };

@@ -28,6 +28,10 @@ const errorHandlerMiddleware = require('./middleware/error-handler-middleware');
 
 const app = express();
 
+// Trust the first proxy (nginx) — required for express-rate-limit to read
+// X-Forwarded-For correctly when running behind a reverse proxy.
+app.set('trust proxy', 1);
+
 // --- Middleware chain ---
 
 // Security headers
@@ -87,9 +91,28 @@ app.use('/api/*', (req, res) => {
 app.use(errorHandlerMiddleware);
 
 // --- Startup ---
+async function seedAdminIfAbsent() {
+  const User = require('./models/user-model');
+  const { ROLES } = require('./utils/constants');
+  const existing = await User.findOne({ email: config.ADMIN_EMAIL });
+  if (existing) return;
+  const passwordHash = await User.hashPassword(config.ADMIN_PASSWORD);
+  await User.create({
+    email: config.ADMIN_EMAIL,
+    passwordHash,
+    fullName: 'System Administrator',
+    role: ROLES.ADMIN,
+    active: true,
+  });
+  logger.info('Admin user seeded', { email: config.ADMIN_EMAIL });
+}
+
 async function start() {
   try {
     await connectDatabase();
+
+    // Seed default admin account on first run (idempotent)
+    await seedAdminIfAbsent();
 
     // Initialise MinIO — load config from DB or env, ensure buckets exist
     const minioStorageService = require('./services/minio-storage-service');

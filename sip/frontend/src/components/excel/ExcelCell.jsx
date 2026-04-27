@@ -15,6 +15,7 @@ export default function ExcelCell({
   cellErrors = [], // errors from full validation for this cell
   onCommit, // fn(fieldName, newValue)
   editable = true,
+  wrap = false, // allow text wrapping in non-editing state
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -47,9 +48,11 @@ export default function ExcelCell({
     padding: '2px 6px',
     cursor: editable ? 'pointer' : 'default',
     minHeight: 24,
-    display: 'flex',
-    alignItems: 'center',
-    gap: 4,
+    display: wrap ? 'block' : 'flex',
+    alignItems: wrap ? undefined : 'center',
+    whiteSpace: wrap ? 'pre-wrap' : undefined,
+    wordBreak: wrap ? 'break-word' : undefined,
+    gap: wrap ? undefined : 4,
   };
 
   if (!editing) {
@@ -58,7 +61,7 @@ export default function ExcelCell({
         <div style={cellStyle} onClick={() => editable && setEditing(true)}>
           {hasError && <WarningOutlined style={{ color: '#C0392B', fontSize: 12 }} />}
           {hasWarn && !hasError && <WarningOutlined style={{ color: '#D4860A', fontSize: 12 }} />}
-          <span style={{ color: value ? undefined : '#A0A6AA' }}>{value || '—'}</span>
+          <span style={{ color: value ? undefined : '#A0A6AA', fontSize: 13 }}>{value || '—'}</span>
         </div>
       </Tooltip>
     );

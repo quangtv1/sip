@@ -1,93 +1,113 @@
 /**
  * Tree view of the uploaded dossier folder structure.
- * Color-codes files by their validation status:
- *   Red   → file referenced in ERROR
- *   Yellow → file referenced in WARNING
- *   Green → OK
+ * Styled as a dark navy code block (matches prototype design).
+ * Color-codes files by validation status:
+ *   Red   → file in ERROR
+ *   Yellow → file in WARNING
+ *   Green  → OK
  * Clicking a PDF node calls onSelectPdf(filename).
  */
-import { Tree, Typography } from 'antd';
-import {
-  FolderOutlined, FolderOpenOutlined,
-  FilePdfOutlined, FileExcelOutlined,
-} from '@ant-design/icons';
 
-const { Text } = Typography;
-
-/** Build a Set of PDF filenames that have errors/warnings */
+/** Build a map of PDF filename → 'error' | 'warning' */
 function buildPdfStatusMap(errors) {
-  const map = {}; // basename → 'error' | 'warning'
+  const map = {};
   for (const e of errors || []) {
     if (e.sheet === 'Attachment' && e.value) {
-      const severity = e.severity === 'ERROR' ? 'error' : 'warning';
-      map[e.value] = severity;
+      map[e.value] = e.severity === 'ERROR' ? 'error' : 'warning';
     }
   }
   return map;
 }
 
-function colorForStatus(status) {
-  if (status === 'error') return '#C0392B';
-  if (status === 'warning') return '#D4860A';
-  return '#1A7A5E';
+// ── Colour tokens (matching prototype CSS variables) ──────────────────────
+const C = {
+  root:    '#A5D8FF',  // root folder
+  dir:     '#74C0FC',  // sub-folder
+  pdf:     '#8ADFC0',  // pdf OK
+  xlsx:    '#FFC078',  // xlsx / xml
+  pdfErr:  '#FF8080',  // pdf with error
+  pdfWarn: '#FFCC60',  // pdf with warning
+  tree:    '#8FB3CC',  // default tree chrome (├── └──)
+  bg:      '#0D1B2A',  // navy background
+};
+
+const mono = "'IBM Plex Mono', 'Courier New', monospace";
+
+// ── Small inline components ────────────────────────────────────────────────
+
+function TreeLine({ children, style }) {
+  return (
+    <div style={{ lineHeight: 1.7, whiteSpace: 'pre', fontFamily: mono, fontSize: 11.5, ...style }}>
+      {children}
+    </div>
+  );
 }
+
+function PdfNode({ name, status, onSelectPdf }) {
+  const color = status === 'error' ? C.pdfErr : status === 'warning' ? C.pdfWarn : C.pdf;
+  return (
+    <span
+      style={{ color, cursor: onSelectPdf ? 'pointer' : 'default', textDecoration: onSelectPdf ? 'underline' : 'none', textDecorationColor: color + '88' }}
+      onClick={() => onSelectPdf?.(name)}
+      title={onSelectPdf ? 'Mở PDF' : undefined}
+    >
+      {name}
+    </span>
+  );
+}
+
+// ── Main component ─────────────────────────────────────────────────────────
 
 export default function FolderTreeView({ pdfFiles = [], errors = [], maHoSo, onSelectPdf }) {
   const pdfStatusMap = buildPdfStatusMap(errors);
+  const rootName = maHoSo || 'Hồ sơ';
+  const xlsxName = maHoSo ? `${maHoSo}.xlsx` : 'metadata.xlsx';
 
-  const pdfNodes = pdfFiles.map((name) => {
-    const status = pdfStatusMap[name];
-    const color = colorForStatus(status);
-    return {
-      key: `pdf-${name}`,
-      title: (
-        <Text
-          style={{ color, cursor: 'pointer' }}
-          onClick={() => onSelectPdf?.(name)}
-        >
-          {name}
-        </Text>
-      ),
-      icon: <FilePdfOutlined style={{ color }} />,
-      isLeaf: true,
-    };
-  });
-
-  const excelNode = {
-    key: 'excel',
-    title: <Text>{maHoSo ? `${maHoSo}.xlsx` : 'metadata.xlsx'}</Text>,
-    icon: <FileExcelOutlined style={{ color: '#1A7A5E' }} />,
-    isLeaf: true,
-  };
-
-  const treeData = [
-    {
-      key: 'root',
-      title: <Text strong>{maHoSo || 'Hồ sơ'}</Text>,
-      icon: <FolderOpenOutlined />,
-      children: [
-        {
-          key: 'attachment',
-          title: <Text>Attachment</Text>,
-          icon: <FolderOutlined />,
-          children: pdfNodes,
-        },
-        {
-          key: 'metadata',
-          title: <Text>Metadata</Text>,
-          icon: <FolderOutlined />,
-          children: [excelNode],
-        },
-      ],
-    },
-  ];
+  const lastPdfIdx = pdfFiles.length - 1;
 
   return (
-    <Tree
-      treeData={treeData}
-      defaultExpandAll
-      showIcon
-      style={{ background: 'transparent', fontSize: 13 }}
-    />
+    <div style={{
+      background: C.bg,
+      borderRadius: 10,
+      padding: '14px 16px',
+      overflowX: 'auto',
+      overflowY: 'auto',
+      maxHeight: '33vh',
+      color: C.tree,
+    }}>
+      {/* root */}
+      <TreeLine>
+        <span style={{ color: C.root, fontWeight: 500 }}>{rootName}/</span>
+      </TreeLine>
+
+      {/* Attachment/ */}
+      <TreeLine>
+        <span style={{ color: C.tree }}>├── </span>
+        <span style={{ color: C.dir }}>Attachment/</span>
+      </TreeLine>
+      {pdfFiles.map((name, i) => {
+        const isLast = i === lastPdfIdx;
+        const status = pdfStatusMap[name];
+        return (
+          <TreeLine key={name}>
+            <span style={{ color: C.tree }}>│   {isLast ? '└── ' : '├── '}</span>
+            <PdfNode name={name} status={status} onSelectPdf={onSelectPdf} />
+          </TreeLine>
+        );
+      })}
+      {pdfFiles.length === 0 && (
+        <TreeLine><span style={{ color: C.tree }}>│   └── </span><span style={{ color: '#555' }}>(trống)</span></TreeLine>
+      )}
+
+      {/* Metadata/ */}
+      <TreeLine>
+        <span style={{ color: C.tree }}>└── </span>
+        <span style={{ color: C.dir }}>Metadata/</span>
+      </TreeLine>
+      <TreeLine>
+        <span style={{ color: C.tree }}>    └── </span>
+        <span style={{ color: C.xlsx }}>{xlsxName}</span>
+      </TreeLine>
+    </div>
   );
 }

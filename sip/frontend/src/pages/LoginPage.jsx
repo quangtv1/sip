@@ -48,10 +48,10 @@ export default function LoginPage() {
         <Form layout="vertical" onFinish={onFinish} autoComplete="off">
           <Form.Item
             name="email"
-            label="Email"
-            rules={[{ required: true, message: 'Vui lòng nhập email' }, { type: 'email', message: 'Email không hợp lệ' }]}
+            label="Tên đăng nhập"
+            rules={[{ required: true, message: 'Vui lòng nhập tên đăng nhập' }]}
           >
-            <Input prefix={<UserOutlined />} placeholder="admin@example.com" size="large" />
+            <Input prefix={<UserOutlined />} placeholder="admin" size="large" />
           </Form.Item>
 
           <Form.Item

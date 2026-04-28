@@ -5,6 +5,7 @@ import DossierPage from './pages/DossierPage.jsx';
 import QueueViewPage from './pages/QueueViewPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import UserManagementPage from './pages/UserManagementPage.jsx';
+import SystemConfigPage from './pages/SystemConfigPage.jsx';
 import AppLayout from './components/layout/AppLayout.jsx';
 
 function ProtectedRoute({ children }) {
@@ -31,6 +32,7 @@ export default function App() {
         <Route path="files" element={<Navigate to="/queue" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="users" element={<UserManagementPage />} />
+        <Route path="config" element={<SystemConfigPage />} />
         <Route path="audit" element={<Navigate to="/users" replace />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

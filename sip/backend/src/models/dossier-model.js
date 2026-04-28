@@ -66,6 +66,11 @@ const dossierSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    // Validation profile at time of creation — for backward compat, existing dossiers default to TT05
+    profileId: {
+      type: String,
+      default: 'TT05',
+    },
     // Parsed Excel data (current working copy)
     hoSoRow: {
       type: mongoose.Schema.Types.Mixed,

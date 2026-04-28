@@ -89,6 +89,42 @@ const TEN_LOAI_TAI_LIEU = Object.freeze([
   '32: Khác',
 ]);
 
+/** Ordered list of all enum keys — used for validation and UI display */
+const ENUM_NAMES = Object.freeze([
+  'THOI_HAN_BAO_QUAN',
+  'CHE_DO_SU_DUNG',
+  'NGON_NGU',
+  'TINH_TRANG_VAT_LY',
+  'MUC_DO_TIN_CAY',
+  'CHE_DO_DU_PHONG',
+  'TINH_TRANG_DU_PHONG',
+  'TEN_LOAI_TAI_LIEU',
+]);
+
+/** Map of all hardcoded enum values — fallback when DB has no entry */
+const HARDCODED_ENUMS = Object.freeze({
+  THOI_HAN_BAO_QUAN,
+  CHE_DO_SU_DUNG,
+  NGON_NGU,
+  TINH_TRANG_VAT_LY,
+  MUC_DO_TIN_CAY,
+  CHE_DO_DU_PHONG,
+  TINH_TRANG_DU_PHONG,
+  TEN_LOAI_TAI_LIEU,
+});
+
+/** Display names for UI */
+const ENUM_DISPLAY_NAMES = Object.freeze({
+  THOI_HAN_BAO_QUAN:   'Thời hạn bảo quản',
+  CHE_DO_SU_DUNG:      'Chế độ sử dụng',
+  NGON_NGU:            'Ngôn ngữ',
+  TINH_TRANG_VAT_LY:   'Tình trạng vật lý',
+  MUC_DO_TIN_CAY:      'Mức độ tin cậy',
+  CHE_DO_DU_PHONG:     'Chế độ dự phòng',
+  TINH_TRANG_DU_PHONG: 'Tình trạng dự phòng',
+  TEN_LOAI_TAI_LIEU:   'Tên loại tài liệu',
+});
+
 module.exports = {
   THOI_HAN_BAO_QUAN,
   CHE_DO_SU_DUNG,
@@ -98,4 +134,7 @@ module.exports = {
   CHE_DO_DU_PHONG,
   TINH_TRANG_DU_PHONG,
   TEN_LOAI_TAI_LIEU,
+  ENUM_NAMES,
+  HARDCODED_ENUMS,
+  ENUM_DISPLAY_NAMES,
 };

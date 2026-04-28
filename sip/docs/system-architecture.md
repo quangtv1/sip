@@ -1,7 +1,7 @@
 # System Architecture
 
-**Version:** 1.5  
-**Last Updated:** 2026-04-26 (Phase 1-8 Complete)
+**Version:** 1.6  
+**Last Updated:** 2026-04-28 (Phase 1-8 + Phase 4 Profile System Complete)
 
 ---
 
@@ -328,7 +328,100 @@ MVP: Stub saves to collection only (no email/SMS yet)
 Future: Integrate with email/SMS/push notification services
 ```
 
-#### 2.8 Dashboard / Stats Service
+#### 2.8 Configuration Management Service (Phase 8) + Profile System (Phase 4 Complete)
+```
+Purpose: Centralized management of validation profiles, enums, schemas, and MinIO config.
+
+Components:
+
+A. Schema Cache Service (schema-cache-service.js) — Phase 4 Extended
+   - In-memory cache for profiles, enums, and schemas
+   - Profile Methods:
+     * getActiveProfileId() — returns current active profile (default 'TT05')
+     * getActiveProfile() — returns full profile object {name, primarySheet, secondarySheet, description}
+     * getProfile(profileId) — fetch specific profile
+     * createProfile(id, {name, primarySheet, secondarySheet, description}) — create profile
+     * updateProfile(id, updates) — update profile
+     * deleteProfile(id) — delete profile (cannot delete active)
+     * setActiveProfile(profileId) — set as active
+     * invalidateProfiles() — clear profile cache
+   - Schema Methods (Phase 4 namespaced by profileId):
+     * getEnum(name) — fetch enum by name, cache hit → return, miss → DB lookup → fallback hardcoded
+     * getSchema(profileId, sheet) — fetch schema by profile + sheet, resolve enum values; legacy fallback: schema:sheet
+     * invalidateAll() — clear all caches (called on enum PUT)
+     * invalidateSchema(profileId, sheet) — clear specific schema cache
+
+B. Configuration Routes (GET/PUT /api/config/*) — Phase 4 Extended
+   - Profile Management:
+     * GET /api/config/profiles — list all profiles
+     * POST /api/config/profiles — create new profile
+     * PUT /api/config/profiles/:id — update profile
+     * DELETE /api/config/profiles/:id — delete profile (cannot delete active)
+     * GET /api/config/active-profile — get current active profile
+     * PUT /api/config/active-profile — set active profile (body: {profileId})
+   - Profile-Scoped Schema:
+     * GET /api/config/profiles/:profileId/schema/primary — get primary sheet schema
+     * GET /api/config/profiles/:profileId/schema/secondary — get secondary sheet schema
+     * PUT /api/config/profiles/:profileId/schema/primary — update primary schema
+     * PUT /api/config/profiles/:profileId/schema/secondary — update secondary schema
+   - Legacy Routes (unchanged):
+     * GET /api/config/minio — return current MinIO config (masked secretKey)
+     * PUT /api/config/minio — update MinIO config, validate connection, hot-reload
+     * GET /api/config/enums — return all enums + current values
+     * GET /api/config/enums/:name — return values for one enum
+     * PUT /api/config/enums/:name — validate + save enum values, invalidate cache
+     * GET /api/config/schema/:sheet — return current schema (active profile + sheet) with resolved enums
+     * PUT /api/config/schema/:sheet — validate + save schema for active profile, invalidate cache
+     * POST /api/config/schema/:sheet/reset — delete DB entry for active profile, revert to hardcoded
+
+C. Schema Validation (schema-payload-validator.js) — Phase 4 Extended
+   - Validates schema structure before save
+   - Rules (updated for new types):
+     * Non-empty array
+     * All fields: index (int>=0), name (string), label (string), type (string|date|positiveInt|enum|float|boolean|regex|email|url|range|dependent-enum), severity (ERROR|WARNING)
+     * No duplicate indices or names
+     * Contiguous indices (0..N-1)
+     * If type=enum, enumKey must exist in ENUM_NAMES
+     * If type=float, range, optional min/max bounds must be numbers
+     * If type=regex, pattern must be valid regex string
+     * If type=url, email, boolean: no extra params required
+     * If type=dependent-enum, dependsOn shape: {fieldIndex, valueMap: {controlValue → enumKey}}
+     * If required=conditional, conditionalOn must reference valid fieldIndex
+     * Rejects regex/dependent-enum field via API (only configurable by hardcoding for now)
+
+D. Profile CRUD Service (Phase 4 New)
+   - Validation Rules:
+     * Profile ID: ^[A-Za-z0-9_-]{2,20}$ (alphanumeric, underscore, hyphen, 2-20 chars)
+     * Name: non-empty string
+     * primarySheet, secondarySheet: non-empty sheet names
+     * Cannot delete currently active profile
+   - Default: TT05 profile seeded on first setup
+
+Database: MongoDB collection "app_configs"
+Schema:
+{
+  _id: ObjectID,
+  key: String,              // Patterns:
+                            // - active_profile (value: 'TT05')
+                            // - profile:{id} (value: {name, primarySheet, secondarySheet, description})
+                            // - enum:NGON_NGU
+                            // - schema:{profileId}:{sheet} (value: fieldDefs[])
+                            // - schema:{sheet} (legacy, fallback until migrated)
+                            // - config:minio_endpoint, etc.
+  value: Any,               // Depends on key pattern
+  updatedAt: Date,
+  updatedBy: String
+}
+
+Cache Strategy:
+- Load profile, schema on first request (or cache miss)
+- Cache only loaded into memory (no TTL drift)
+- Explicit invalidation on every PUT request
+- Fallback to hardcoded/default if DB entry missing
+- Legacy schema:sheet keys used if schema:profileId:sheet not found
+```
+
+#### 2.9 Dashboard / Stats Service
 ```
 GET /api/stats?period=30d&groupBy=week
 ├── Count dossiers by state (UPLOAD, VALIDATED, DONE)
@@ -338,7 +431,7 @@ GET /api/stats?period=30d&groupBy=week
 └── Return aggregated data for Chart.js
 ```
 
-**Routes Structure (Phase 4-5 Implementation):**
+**Routes Structure (Phase 4-8 Implementation):**
 ```
 routes/
 ├── upload-routes.js   (POST /api/upload) — PHASE 2 ✓
@@ -374,6 +467,12 @@ routes/
 │   ├── BullMQ queue enqueue
 │   ├── Job status polling
 │   └── Async SIP generation
+├── config-routes.js   (GET/PUT /api/config/minio, enums, schema) — PHASE 8 ✓
+│   ├── MinIO configuration management
+│   ├── Dynamic enum CRUD (GET/PUT /api/config/enums/:name)
+│   ├── Dynamic schema CRUD (GET/PUT /api/config/schema/:sheet)
+│   ├── Schema validation + reset endpoint
+│   └── Cache invalidation on save
 ├── sign-routes.js     (POST /sign) — PHASE 6 (Planned)
 │   ├── XMLDSig signing
 │   ├── TSA integration
@@ -420,12 +519,15 @@ Indexes:
 - { timestamp: -1 } (recent activities)
 ```
 
-#### config
+#### app_configs
 ```javascript
 {
   _id: ObjectId,
-  key: String,              // MINIO_CONFIG, JWT_EXPIRY, etc.
-  value: Any,
+  key: String,              // Patterns:
+                            // - config:minio_* (endpoint, port, useSSL, accessKey, secretKey)
+                            // - enum:{name} (NGON_NGU, THOI_HAN_BAO_QUAN, etc.)
+                            // - schema:{sheet} (Ho_so, Van_ban)
+  value: Any,               // String for minio config, Array for enum values, Array for schema fields
   updatedAt: Date,
   updatedBy: String
 }
@@ -852,7 +954,30 @@ Backend:
 
 ---
 
-## Validation Rules Matrix (TT05)
+## Supported Field Types (Phase 4)
+
+**Core Types:**
+- `string` — Free text (required, not empty check only)
+- `date` — Date in DD/MM/YYYY format
+- `positiveInt` — Integer > 0
+- `enum` — Exact match from enum list
+
+**Extended Types (Phase 4 New):**
+- `float` — Floating point number with optional min/max bounds
+- `boolean` — Accepts true/false/1/0/có/không/yes/no (case-insensitive)
+- `regex` — Pattern validation; pattern stored in field definition
+- `email` — RFC 5321 simplified format (x@y.z)
+- `url` — HTTP/HTTPS protocol check, parseable via `new URL()`
+- `range` — Numeric value within [min, max] inclusive (supports both int and float)
+- `dependent-enum` — Enum values depend on sibling field value; includes `dependsOn` field mapping
+
+**Async Resolution:**
+- `enum` — values resolved via `getEnum(key)` or inline enumValues array
+- `dependent-enum` — sibling field value → enum key lookup, then resolve enum
+
+---
+
+## Validation Rules Matrix (TT05 Default Profile)
 
 **Ho_so Sheet (18 fields):**
 

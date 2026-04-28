@@ -22,19 +22,15 @@ router.use(authMiddleware, requireRole([ROLES.OPERATOR, ROLES.ADMIN]));
  * Validate a single field without a saved dossier context.
  * Body: { sheet, field, value, rowContext, rowNum }
  */
-router.post('/inline', (req, res, next) => {
+router.post('/inline', async (req, res, next) => {
   try {
-    const { sheet, field, value, rowContext, rowNum } = req.body;
+    const { sheet, field, value, rowContext, rowNum, profileId } = req.body;
 
     if (!sheet || !field || value === undefined) {
       return next(new ValidationError('sheet, field và value là bắt buộc'));
     }
 
-    if (!['Ho_so', 'Van_ban'].includes(sheet)) {
-      return next(new ValidationError('sheet phải là "Ho_so" hoặc "Van_ban"'));
-    }
-
-    const result = validateInline({ sheet, field, value: String(value), rowContext: rowContext || {}, rowNum: rowNum || 1 });
+    const result = await validateInline({ sheet, field, value: String(value), rowContext: rowContext || {}, rowNum: rowNum || 1, profileId });
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);
@@ -60,6 +56,7 @@ router.post('/:id', async (req, res, next) => {
       hoSoRow: dossier.hoSoRow,
       vanBanRows: dossier.vanBanRows,
       pdfFiles: dossier.pdfFiles,
+      profileId: dossier.profileId || 'TT05',
     });
 
     dossier.validationResult = {

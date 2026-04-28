@@ -1,7 +1,7 @@
 # Codebase Summary
 
-**Status:** Phase 1-8 Complete (All MVP core features, testing infrastructure, bug fixes)  
-**Last Updated:** 2026-04-26
+**Status:** Phase 1-8 Complete + Phase 4 (Generalized Validation Profile System) Complete  
+**Last Updated:** 2026-04-28
 
 ---
 
@@ -44,7 +44,7 @@ sip/
 
 ---
 
-## What's Built (Phase 1-2 Complete)
+## What's Built (Phase 1-8 Complete + Phase 4 Profile System Complete)
 
 ### Backend (Phase 2 Implementation Complete)
 - **Stack:** Express.js 4.x
@@ -64,20 +64,22 @@ sip/
 
 #### Services (src/services/)
 - `folder-structure-validator.js` — Validates Attachment/ + Metadata/ layout, ≥1 PDF, exactly 1 .xlsx
-- `excel-parser-service.js` — SheetJS parser: Ho_so + Van_ban sheets → JSON, date serial handling
-- `field-validator-service.js` — Per-field validation: required, enum (exact match), date (DD/MM/YYYY), positive int, regex
+- `excel-parser-service.js` — SheetJS parser: sheet names from active profile → JSON, date serial handling, returns profileId
+- `field-validator-service.js` — Per-field validation: string, date, positiveInt, enum, float, boolean, regex, email, url, range, dependent-enum (async)
 - `cross-validator-service.js` — 5 checks: count match, prefix, duplicate MaLuuTru, duplicate MaDinhDanh, date range, retention hierarchy
 - `pdf-mapping-validator.js` — Field 21 PDF filenames vs Attachment/, fallback {MaLuuTru}.pdf, missing = ERROR, extra = WARNING
 - `auto-fix-service.js` — Suggest fixes: date reformat, trim, fuzzy enum (Levenshtein), int extraction
-- `validation-orchestrator.js` — Chain all validators, aggregate errors + suggestions
+- `validation-orchestrator.js` — Chain all validators, threads profileId through pipeline, aggregate errors + suggestions
+- `schema-cache-service.js` — Cache enums + schemas by profileId; profile CRUD methods; active profile getters/setters
 
 #### Models (src/models/)
-- `dossier-model.js` — Schema: maHoSo, state, uploadedBy, excelData (Ho_so + Van_ban), validationResult, versions[], pdfFiles[], tempPath, createdAt, updatedAt
+- `dossier-model.js` — Schema: maHoSo, profileId, state, uploadedBy, excelData (Ho_so + Van_ban), validationResult, versions[], pdfFiles[], tempPath, createdAt, updatedAt
 
 #### Routes (src/routes/)
-- `upload-routes.js` — multer, ZIP bomb guard, path traversal fix, temp cleanup
-- `validate-routes.js` — /validate/:id + /validate-inline
+- `upload-routes.js` — multer, ZIP bomb guard, path traversal fix, temp cleanup, captures active profileId
+- `validate-routes.js` — /validate/:id + /validate-inline, threads profileId through validation
 - `save-routes.js` — version capping (20), input sanitization
+- `config-routes.js` — Profile CRUD (GET/POST/PUT/DELETE /api/config/profiles), active profile (GET/PUT), schema routes scoped by profileId
 
 **Testing:**
 - 40/40 unit tests passing (node:test framework)
@@ -110,11 +112,21 @@ sip/
   - queue-setup.js: BullMQ test-mode stub added
 - Security hardening: Helmet, CORS, rate limiting, Morgan skips /ws/ ✓
 
+**Phase 4: Generalized Validation Profile System (NEW - 2026-04-28)**
+- Profile CRUD API (create/read/update/delete named validation profiles) ✓
+- Active profile management (GET/PUT /api/config/active-profile) ✓
+- Frontend "Tiêu chuẩn" tab for profile management UI ✓
+- Schema namespace migration (schema:profile:sheet keys) ✓
+- Dossier profileId field (default 'TT05') ✓
+- Excel sheet names from active profile (configurable primarySheet/secondarySheet) ✓
+- Extended field types: float, boolean, regex, email, url, range ✓
+- Dependent-enum cascading type (field B depends on field A value) ✓
+- Schema validation with new type param checking ✓
+
 **Not Yet Implemented:**
 - Digital signature (XMLDSig + TSA) — Phase 6
 - MinIO upload deferred to Phase 6
 - Dashboard (stats charts, audit log viewer) — Phase 7
-- Admin Rule Editor (edit TT05 rules without restart) — Phase 7
 
 ### Frontend (Phase 4-5 Implementation Complete)
 - **Location:** `/mnt/d/app/sip/frontend/`

@@ -188,6 +188,7 @@ async function processUpload(req, res, tempDir, fileList) {
     maHoSo,
     state: DOSSIER_STATES.VALIDATED,
     uploadedBy: req.user.email,
+    profileId: validationResult.profileId || 'TT05',
     hoSoRow: validationResult.hoSoRow,
     vanBanRows: validationResult.vanBanRows,
     pdfFiles: normFileList

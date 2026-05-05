@@ -1,20 +1,16 @@
 /**
  * System configuration page — Admin only.
- * Tabs: MinIO | Danh mục (enums) | Cấu trúc bảng (schemas) | Tiêu chuẩn (profiles)
+ * Tabs: Tiêu chuẩn (unified standards hub) | MinIO
  */
 import { Typography, Tabs } from 'antd';
-import MinioConfigTab        from './system-config/minio-config-tab.jsx';
-import EnumManagementTab     from './system-config/enum-management-tab.jsx';
-import SchemaManagementTab   from './system-config/schema-management-tab.jsx';
-import ProfileManagementTab  from './system-config/profile-management-tab.jsx';
+import MinioConfigTab   from './system-config/minio-config-tab.jsx';
+import StandardsHubTab  from './system-config/standards-hub-tab.jsx';
 
 const { Title } = Typography;
 
 const TAB_ITEMS = [
-  { key: 'minio',   label: 'MinIO',          children: <MinioConfigTab /> },
-  { key: 'enums',   label: 'Danh mục',        children: <EnumManagementTab /> },
-  { key: 'schema',  label: 'Cấu trúc bảng',  children: <SchemaManagementTab /> },
-  { key: 'profile', label: 'Tiêu chuẩn',     children: <ProfileManagementTab /> },
+  { key: 'standards', label: 'Tiêu chuẩn', children: <StandardsHubTab /> },
+  { key: 'minio',     label: 'MinIO',       children: <MinioConfigTab /> },
 ];
 
 export default function SystemConfigPage() {

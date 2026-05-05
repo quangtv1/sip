@@ -31,9 +31,19 @@ let   activeProfileId = null;   // string | null
 /** Built-in fallback so TT05 works with zero DB config */
 function defaultProfile(profileId) {
   if (profileId === 'TT05') {
-    return { name: 'Thông tư 05', primarySheet: 'Ho_so', secondarySheet: 'Van_ban', description: '' };
+    return { name: 'Thông tư 05', sheets: ['Ho_so', 'Van_ban'], description: '' };
   }
   return null;
+}
+
+/** Inline migration: convert old { primarySheet, secondarySheet } shape to { sheets: [] } */
+function migrateProfileShape(data) {
+  if (!data || data.sheets) return data;
+  const sheets = [];
+  if (data.primarySheet) sheets.push(data.primarySheet);
+  if (data.secondarySheet) sheets.push(data.secondarySheet);
+  const { primarySheet, secondarySheet, ...rest } = data; // eslint-disable-line no-unused-vars
+  return { ...rest, sheets };
 }
 
 async function getActiveProfileId() {
@@ -65,6 +75,8 @@ async function getProfile(profileId) {
       console.error(`[schema-cache] DB error for profile:${profileId}:`, err.message);
     }
   }
+  // Migrate old shape (primarySheet/secondarySheet) to new shape (sheets[])
+  data = migrateProfileShape(data);
   if (data) profileCache.set(profileId, data);
   return data;
 }
@@ -76,9 +88,32 @@ function invalidateProfiles() {
 
 // ── Enum ──────────────────────────────────────────────────────────────────────
 
-async function getEnum(name) {
-  if (enumCache.has(name)) return enumCache.get(name);
+/**
+ * Get enum values. Lookup order: per-standard (profileId) → global → hardcoded.
+ * Per-standard key: `enum:{profileId}:{name}`, global key: `enum:{name}`.
+ * @param {string} name
+ * @param {string|null} [profileId] — pass to enable per-standard override lookup
+ */
+async function getEnum(name, profileId = null) {
+  // 1. Per-standard override
+  if (profileId) {
+    const perKey = `${profileId}:${name}`;
+    if (enumCache.has(perKey)) return enumCache.get(perKey);
+    if (isDbConnected()) {
+      try {
+        const stored = await AppConfig.findOne({ key: `enum:${profileId}:${name}` }).lean();
+        if (stored?.value?.length > 0) {
+          enumCache.set(perKey, stored.value);
+          return stored.value;
+        }
+      } catch (err) {
+        console.error(`[schema-cache] DB error for enum:${profileId}:${name}:`, err.message);
+      }
+    }
+  }
 
+  // 2. Global (hardcoded fallback)
+  if (enumCache.has(name)) return enumCache.get(name);
   let values = HARDCODED_ENUMS[name] || [];
   if (isDbConnected()) {
     try {
@@ -98,12 +133,15 @@ function getHardcodedSchema(sheet) {
   return sheet === 'Ho_so' ? Array.from(HO_SO_SCHEMA) : Array.from(VAN_BAN_SCHEMA);
 }
 
-/** Resolve enumKey → enumValues in-place on a copy of the schema fields */
-async function resolveSchemaEnums(fields) {
+/**
+ * Resolve enumKey → enumValues in-place on a copy of the schema fields.
+ * Passes profileId to getEnum so per-standard overrides are applied.
+ */
+async function resolveSchemaEnums(fields, profileId = null) {
   const out = [];
   for (const field of fields) {
     if (field.type === 'enum' && field.enumKey) {
-      const enumValues = await getEnum(field.enumKey);
+      const enumValues = await getEnum(field.enumKey, profileId);
       out.push({ ...field, enumValues });
     } else {
       out.push({ ...field });
@@ -158,7 +196,7 @@ async function getSchema(profileId, sheet) {
     }
   }
 
-  const resolved = await resolveSchemaEnums(baseFields);
+  const resolved = await resolveSchemaEnums(baseFields, profileId);
   schemaCache.set(cacheKey, resolved);
   return resolved;
 }

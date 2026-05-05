@@ -75,8 +75,8 @@ async function parseExcel(filePathOrBuffer) {
   // Load active profile to get configurable sheet names
   const profileId   = await schemaCacheService.getActiveProfileId();
   const profile     = await schemaCacheService.getProfile(profileId);
-  const primarySheet   = profile?.primarySheet   || 'Ho_so';
-  const secondarySheet = profile?.secondarySheet || 'Van_ban';
+  const primarySheet   = profile?.sheets?.[0] || profile?.primarySheet   || 'Ho_so';
+  const secondarySheet = profile?.sheets?.[1] || profile?.secondarySheet || 'Van_ban';
 
   let workbook;
   try {

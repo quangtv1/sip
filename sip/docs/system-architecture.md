@@ -263,19 +263,21 @@ Outputs: SIP zip file (stored in temp, ready for signing in Phase 6)
 - PREMIS generator: `premis-generator.js` — PREMIS 3 XML (preservation metadata)
 - Checksum service: `checksum-service.js` — SHA-256 for all files
 
-#### 2.5 Signing Service (Phase 6 — Deferred)
+#### 2.5 Signing Service (Phase 6 — Deferred to Phase 2 of Production)
 ```
-POST /api/sign — NOT YET IMPLEMENTED
-├── Verify dossier state = PACKAGING
-├── Load SIP XML files from temp
+POST /api/sign — NOT YET IMPLEMENTED (Stub)
+├── Verify dossier state = DONE (note: not PACKAGING)
+├── Load SIP XML files from packaging output
 ├── Sign with XMLDSig:
 │   ├── Load private key
 │   ├── Compute signature
 │   ├── Embed signature in XML
 │   └── Add TSA timestamp
 ├── Verify signature (self-test)
-├── Update dossier state → DONE
-└── Upload signed SIP to MinIO (Phase 6)
+├── Upload signed SIP to MinIO (sip-files bucket)
+└── Final state: DONE + signed marker in dossier record
+
+**Deferral Rationale:** MVP scope focuses on validation, approval, and packaging. Signing is deferred to Phase 6/Phase 2 post-launch pending TSA service procurement.
 ```
 
 #### 2.6 Audit Log Service (Phase 4 Complete)
@@ -421,14 +423,28 @@ Cache Strategy:
 - Legacy schema:sheet keys used if schema:profileId:sheet not found
 ```
 
-#### 2.9 Dashboard / Stats Service
+#### 2.9 Dashboard / Stats Service (Phase 7 — Frontend Deferred, API Complete)
 ```
 GET /api/stats?period=30d&groupBy=week
 ├── Count dossiers by state (UPLOAD, VALIDATED, DONE)
 ├── Sum errors by field (top 10)
 ├── Calculate success rate (DONE / total)
 ├── Error trend over time
-└── Return aggregated data for Chart.js
+└── Return aggregated data for Chart.js (API implemented)
+
+Status: Backend API complete; frontend dashboard UI deferred to Phase 7.
+Basic stats aggregation working; charting library integration pending.
+```
+
+#### 2.10 WebSocket Notifications (Phase 6 Complete)
+```
+GET /ws/notifications (WebSocket)
+├── Real-time state change notifications
+├── User subscribed on login
+├── Messages: {type: 'STATE_CHANGE', dossierID, fromState, toState}
+└── Connection auto-closes on logout
+
+Status: WebSocket server implemented with ping/pong heartbeat.
 ```
 
 **Routes Structure (Phase 4-8 Implementation):**

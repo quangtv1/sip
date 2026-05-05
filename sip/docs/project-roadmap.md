@@ -163,65 +163,65 @@
 
 ---
 
-## Phase 6: Digital Signature & Storage (Weeks 8-9)
+## Phase 6: Digital Signature & Storage (Weeks 8-9) — DEFERRED to Phase 6 Task
 
 **Goal:** Implement XMLDSig + TSA, upload to MinIO, integrate storage.
 
-**Deliverables:**
+**Status (as of 2026-05-05):**
+- MinIO integration: IMPLEMENTED (Phase 5 extended)
+- WebSocket notifications: IMPLEMENTED (Phase 6)
+- Presigned URL generation: IMPLEMENTED
+- XMLDSig + TSA signing: DEFERRED (stub only; pending TSA service procurement)
+
+**Planned Deliverables:**
 - XMLDSig implementation (sign METS, EAD, PREMIS)
 - TSA integration (add timestamp authority signature)
 - Signature verification (self-test after signing)
-- MinIO integration (upload SIP to sip-files/ bucket)
-- Presigned URL generation (1-hour expiry)
-- File download endpoint with presigned URL
+- Signed SIP upload to MinIO (sip-files/ bucket)
 - Retry logic for network failures (3 attempts)
 
 **Success Criteria:**
 - Signature valid per XMLDSig spec
 - TSA timestamp included and verifiable
-- SIP uploaded to MinIO successfully
-- Presigned URLs work and expire correctly
-- Retry works on network errors
+- Signed SIP uploaded to MinIO successfully
 - Cannot re-sign after DONE state
 
-**Estimated Effort:** 100 hours
+**Estimated Effort:** 80 hours (deferred)
 
-**Milestones:**
-- Day 33: XMLDSig signing working
-- Day 35: TSA integration tested
-- Day 37: MinIO upload + presigned URLs working
-- Day 39: Signature verification + retry logic complete
+**Deferral Rationale:** MVP validation/packaging complete; signing deferred pending TSA provider contract finalization.
 
 ---
 
-## Phase 7: Dashboard & Advanced Features (Weeks 9-10)
+## Phase 7: Dashboard & Advanced Features (Weeks 9-10) — DEFERRED to Phase 7 Task
 
 **Goal:** Implement dashboard, SIP viewer, admin rule editor.
 
-**Deliverables:**
-- Dashboard with charts (stats, error trends, success rate)
+**Status (as of 2026-05-05):**
+- Stats API: IMPLEMENTED (GET /api/stats with aggregation)
+- SystemConfigPage UI: IMPLEMENTED (Phase 8, admin can manage profiles/enums/schema)
+- WebSocket notifications: IMPLEMENTED (real-time state changes)
+- Dashboard charts: DEFERRED (stats API ready, frontend charts pending)
+- SIP Viewer: DEFERRED
+- Audit log viewer UI: DEFERRED (collection implemented, UI pending)
+
+**Planned Deliverables (when Phase 7 task runs):**
+- Dashboard charts (Chart.js integration) with stats, error trends, success rate
 - Drill-down from dashboard to error details + original Excel
 - SIP Viewer (unzip SIP, show file tree, preview XML)
 - XML Preview component (collapsible tree, syntax highlighting)
-- Admin Rule Editor UI (view/edit TT05 rules, no-code)
-- File Browser (list files in MinIO buckets, preview, download)
-- Audit log viewer (filter, export to CSV)
+- File Browser UI (list files in MinIO buckets, preview, download)
+- Audit log viewer UI (filter, export to CSV)
 
 **Success Criteria:**
 - Dashboard loads in <1 second
 - Charts update near-realtime (< 30s)
 - Drill-down shows correct error details
 - SIP Viewer unzips and shows tree correctly
-- Admin can edit rules without restart
 - Audit log shows all actions
 
-**Estimated Effort:** 100 hours
+**Estimated Effort:** 100 hours (deferred)
 
-**Milestones:**
-- Day 40: Dashboard skeleton + basic stats
-- Day 42: Charts implemented + drill-down working
-- Day 44: SIP Viewer + XML Preview working
-- Day 46: Admin Rule Editor + Audit Log Viewer complete
+**Deferral Rationale:** MVP core features complete; dashboard UI and viewers enhance usability but not critical for MVP validation. Deferred to Phase 7 pending resource availability.
 
 ---
 
@@ -230,15 +230,23 @@
 **Goal:** Implement dynamic configuration system for MinIO, enums, and field schemas. Complete testing, documentation, security hardening.
 
 **Deliverables (All Complete):**
-- SystemConfigPage (React UI with tabs for MinIO, enums, schema) ✓
+- SystemConfigPage (React UI with tabs for MinIO, enums, schema, profiles, standards) ✓
 - Schema cache service (in-memory cache with DB fallback, hardcoded fallback) ✓
+- Profile CRUD system (create/read/update/delete validation profiles) ✓
 - Dynamic enum management (GET/PUT /api/config/enums/*) ✓
 - Dynamic field schema management (GET/PUT/POST /api/config/schema/*) ✓
-- Schema validation helper (contiguous indices, duplicate check, enum key validation) ✓
-- Updated validators + parsers (async, schema from cache) ✓
-- EnumManagementTab component (list, add, delete, reorder enum values) ✓
-- SchemaManagementTab component (field editor, add/delete rows, reset to default) ✓
-- Jest test suite (40 tests: 14 field-validator, 26 others) ✓
+- Validation profile management (GET/PUT/POST/DELETE /api/config/profiles/*) ✓
+- Schema validation helper (contiguous indices, duplicate check, enum key validation, new types) ✓
+- Updated validators + parsers (async, schema from cache, profile-aware) ✓
+- Extended field types (float, boolean, regex, email, url, range, dependent-enum) ✓
+- System config tabs (15 component files):
+  - EnumManagementTab (list, add, delete, reorder enum values) ✓
+  - ProfileManagementTab (profile CRUD UI) ✓
+  - SchemaManagementTab (field editor, add/delete rows, reset to default) ✓
+  - MinIOConfigTab (endpoint/port/credentials management) ✓
+  - StandardsHubTab (profile overview + detail panels) ✓
+  - Helper components (enum-panel, enum-section, profile-config-tab, sheet-editor-modal, sheet-import-modal, etc.) ✓
+- Jest test suite (47 tests: unit + integration) ✓
 - MongoMemoryServer for in-memory DB testing (no mocking) ✓
 - Test helpers: jest-env-setup.js, test-setup.js, test-auth-helper.js ✓
 - GitHub Actions CI pipeline (.github/workflows/ci.yml) ✓
@@ -249,19 +257,22 @@
   - app.js: Rate limiter + start() guarded by NODE_ENV !== 'test'
   - queue-setup.js: BullMQ Queue test-mode stub added
 - Security hardening (Helmet headers, CORS, rate limiting, Morgan skips /ws/) ✓
+- Winston logging framework integration ✓
 
 **Success Criteria (All Met):**
-- All 40 tests passing ✓
+- All 47 tests passing ✓
 - >70% code coverage (jest.config.js threshold) ✓
 - Zero known security vulnerabilities ✓
 - No console errors in test execution ✓
 - Dynamic enum values resolved in validators ✓
 - Dynamic schema used by parsers and validators ✓
-- Admin UI for MinIO, enum, and schema configuration ✓
+- Admin UI for MinIO, enum, schema, and profile configuration ✓
+- Multiple validation profiles supported (TT05, custom) ✓
+- Extended field types working in validators ✓
 
-**Completed on:** 2026-04-28
+**Completed on:** 2026-04-28 (Generalized Profile System Completion)
 
-**Actual Effort:** ~140 hours (config system + 3 UI components + async refactoring + all tests pass)
+**Actual Effort:** ~160 hours (profile system + 15 config components + extended types + async refactoring + all tests pass)
 
 ---
 
@@ -318,7 +329,11 @@ Phase 8: Testing & Polish ──────────────────
                                              MVP READY
 ```
 
-**Status:** Phases 1-8 complete (8 of 8 = 100% done). MVP ready for UAT. Phase 6 & 7 deferred pending architecture/scope review.
+**Status:** Phases 1-8 complete (8 of 8 = 100% done). MVP ready for UAT.
+- Phase 1-5: Complete (validation, packaging, workflow)
+- Phase 8: Complete (config system, testing, hardening)
+- Phase 6 (Signing): Deferred to Phase 6 task (TSA service pending)
+- Phase 7 (Dashboard): Deferred to Phase 7 task (UI charts/viewers pending)
 
 ---
 

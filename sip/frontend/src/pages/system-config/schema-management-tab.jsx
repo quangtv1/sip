@@ -16,23 +16,42 @@ const TYPE_OPTIONS = [
 ].map(v => ({ value: v, label: v }));
 const REQUIRED_OPTIONS = [{ value: true, label: 'true' }, { value: false, label: 'false' }, { value: 'conditional', label: 'conditional' }];
 const SEVERITY_OPTIONS = ['ERROR','WARNING'].map(v => ({ value: v, label: v }));
-const ENUM_KEYS = ['THOI_HAN_BAO_QUAN','CHE_DO_SU_DUNG','NGON_NGU','TINH_TRANG_VAT_LY',
-  'MUC_DO_TIN_CAY','CHE_DO_DU_PHONG','TINH_TRANG_DU_PHONG','TEN_LOAI_TAI_LIEU']
-  .map(v => ({ value: v, label: v }));
 
-function cell(val, setter, type = 'text') {
+/** Load enum list from API so it includes custom enums and shows Vietnamese display names */
+function useEnumKeys() {
+  const [enumKeys, setEnumKeys] = useState([]);
+  useEffect(() => {
+    apiClient.get('/config/enums')
+      .then(({ data }) => {
+        // API returns an object keyed by enum name: { ENUM_NAME: { displayName, values }, ... }
+        const obj = data.data || {};
+        const list = Object.entries(obj).map(([name, info]) => ({
+          name,
+          displayName: info.displayName,
+        }));
+        setEnumKeys([
+          { value: null, label: '—' },
+          ...list.map(e => ({ value: e.name, label: e.displayName ? `${e.displayName} (${e.name})` : e.name })),
+        ]);
+      })
+      .catch(() => {}); // fallback: empty — user can still type manually
+  }, []);
+  return enumKeys;
+}
+
+function cell(val, setter, type = 'text', enumKeys = []) {
   if (type === 'select-type') return <Select size="small" value={val} onChange={setter} options={TYPE_OPTIONS} style={{ width: 140 }} />;
   if (type === 'select-req')  return <Select size="small" value={val} onChange={setter} options={REQUIRED_OPTIONS} style={{ width: 120 }} />;
   if (type === 'select-sev')  return <Select size="small" value={val} onChange={setter} options={SEVERITY_OPTIONS} style={{ width: 90 }} />;
-  if (type === 'select-enum') return <Select size="small" value={val} onChange={setter} options={[{ value: null, label: '—' }, ...ENUM_KEYS]} style={{ width: 190 }} />;
+  if (type === 'select-enum') return <Select size="small" value={val} onChange={setter} options={enumKeys} style={{ width: 230 }} showSearch optionFilterProp="label" />;
   return <Input size="small" value={val} onChange={e => setter(e.target.value)} style={{ width: type === 'wide' ? 200 : 130 }} />;
 }
 
 /** Extra param inputs shown based on field type */
-function TypeParamInputs({ row, onChange }) {
+function TypeParamInputs({ row, onChange, enumKeys }) {
   const { type } = row;
   if (type === 'enum') {
-    return cell(row.enumKey, v => onChange('enumKey', v), 'select-enum');
+    return cell(row.enumKey, v => onChange('enumKey', v), 'select-enum', enumKeys);
   }
   if (type === 'regex') {
     return <Input size="small" placeholder="pattern (regex)" value={row.pattern || ''} onChange={e => onChange('pattern', e.target.value)} style={{ width: 200 }} />;
@@ -90,6 +109,7 @@ function SchemaSheetEditor({ profileId, sheetType }) {
   const [loading,   setLoading]   = useState(false);
   const [saving,    setSaving]    = useState(false);
   const [result,    setResult]    = useState(null);
+  const enumKeys = useEnumKeys();
 
   const load = useCallback(() => {
     if (!profileId) return;
@@ -146,11 +166,12 @@ function SchemaSheetEditor({ profileId, sheetType }) {
     { title: 'type',     dataIndex: 'type',     width: 150, render: (v, _, i) => cell(v, val => update(i, 'type', val), 'select-type') },
     { title: 'required', dataIndex: 'required', width: 130, render: (v, _, i) => cell(v, val => update(i, 'required', val), 'select-req') },
     {
-      title: 'Tham số', key: 'params', width: 240,
+      title: 'Tham số', key: 'params', width: 260,
       render: (_, row, i) => (
         <TypeParamInputs
           row={row}
           onChange={(key, val) => update(i, key, val)}
+          enumKeys={enumKeys}
         />
       ),
     },

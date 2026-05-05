@@ -123,10 +123,10 @@ sip/
 - Dependent-enum cascading type (field B depends on field A value) ✓
 - Schema validation with new type param checking ✓
 
-**Not Yet Implemented:**
-- Digital signature (XMLDSig + TSA) — Phase 6
-- MinIO upload deferred to Phase 6
-- Dashboard (stats charts, audit log viewer) — Phase 7
+**Phase 6-7 Status (Deferred):**
+- Digital signature (XMLDSig + TSA) — Phase 6 deferred (stub only)
+- Signed SIP upload to MinIO — Phase 6 deferred
+- Full dashboard with charts and admin rule editor — Phase 7 deferred (basic stats API exists)
 
 ### Frontend (Phase 4-5 Implementation Complete)
 - **Location:** `/mnt/d/app/sip/frontend/`
@@ -349,14 +349,13 @@ sip/
 
 ## Tech Debt & Known Limitations
 
-| Issue | Impact | Plan |
-|-------|--------|------|
-| No test coverage yet | Risk of regressions | Add unit + integration tests in Phase 2 |
-| No error handling framework | Production fragile | Define error codes + responses in Phase 1 |
-| No logging framework | Debugging hard | Add Winston or Pino in Phase 1 |
-| Excel parsing untested | May fail on edge cases | Test with real archives' files |
-| No rate limiting | Potential DoS | Add express-rate-limit before production |
-| No input sanitization | XSS/injection risk | Add input validation middleware Phase 1 |
+| Issue | Impact | Status |
+|-------|--------|--------|
+| Digital signature XMLDSig/TSA | Deferrable for MVP | Deferred to Phase 6 (stub only) |
+| MinIO signed SIP upload | Deferrable for MVP | Deferred to Phase 6 |
+| Full dashboard UI (admin rule editor) | Deferrable for MVP | Basic stats API done; full UI deferred Phase 7 |
+| Excel parsing edge cases | Low impact | 47 tests cover main paths; real data testing in UAT |
+| Performance optimization | Low impact | Virtual grids + caching already implemented; tuning in Phase 7 |
 
 ---
 

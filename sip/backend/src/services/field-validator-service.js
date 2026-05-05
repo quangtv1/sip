@@ -162,8 +162,9 @@ function validateRange(value, field, sheet, rowNum) {
  * @param {string}   sheet           — sheet name
  * @param {number}   rowNum          — 1-based display row number
  * @param {Array}    [resolvedSchema] — pre-loaded schema; falls back to hardcoded if omitted
+ * @param {string}  [profileId]      — for per-standard enum resolution in dependent-enum
  */
-async function validateField(field, value, rawRow, sheet, rowNum, resolvedSchema) {
+async function validateField(field, value, rawRow, sheet, rowNum, resolvedSchema, profileId = 'TT05') {
   const errors = [];
   const strVal = value !== undefined && value !== null ? String(value) : '';
 
@@ -243,7 +244,7 @@ async function validateField(field, value, rawRow, sheet, rowNum, resolvedSchema
             ?? dependsOn.valueMap[controlValue.toUpperCase()]
             ?? null;
           if (enumKey) {
-            const enumValues = await schemaCacheService.getEnum(enumKey);
+            const enumValues = await schemaCacheService.getEnum(enumKey, profileId);
             if (enumValues?.length && !enumValues.includes(strVal)) {
               errors.push(makeError(field, strVal, sheet, rowNum, 'INVALID_DEPENDENT_ENUM',
                 `"${field.label}" không hợp lệ với ${controlField.label} = "${controlValue}"`));
@@ -277,11 +278,11 @@ async function validateField(field, value, rawRow, sheet, rowNum, resolvedSchema
  */
 async function validateHoSoRow(hoSoRow, profileId = 'TT05') {
   const profile = await schemaCacheService.getProfile(profileId);
-  const sheet   = profile?.primarySheet || 'Ho_so';
+  const sheet   = profile?.sheets?.[0] || profile?.primarySheet || 'Ho_so';
   const schema  = await schemaCacheService.getSchema(profileId, sheet);
   const errors  = [];
   for (const field of schema) {
-    const errs = await validateField(field, hoSoRow[field.name], hoSoRow, sheet, 1, schema);
+    const errs = await validateField(field, hoSoRow[field.name], hoSoRow, sheet, 1, schema, profileId);
     errors.push(...errs);
   }
   return errors;
@@ -295,14 +296,14 @@ async function validateHoSoRow(hoSoRow, profileId = 'TT05') {
  */
 async function validateVanBanRows(vanBanRows, profileId = 'TT05') {
   const profile = await schemaCacheService.getProfile(profileId);
-  const sheet   = profile?.secondarySheet || 'Van_ban';
+  const sheet   = profile?.sheets?.[1] || profile?.secondarySheet || 'Van_ban';
   const schema  = await schemaCacheService.getSchema(profileId, sheet);
   const errors  = [];
   for (let idx = 0; idx < vanBanRows.length; idx++) {
     const row = vanBanRows[idx];
     if (!row || typeof row !== 'object') continue;
     for (const field of schema) {
-      const errs = await validateField(field, row[field.name], row, sheet, idx + 1, schema);
+      const errs = await validateField(field, row[field.name], row, sheet, idx + 1, schema, profileId);
       errors.push(...errs);
     }
   }

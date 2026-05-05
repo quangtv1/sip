@@ -1,9 +1,9 @@
 # Project Overview & Product Development Requirements
 
 **Project:** SIP (Submission Information Package) System  
-**Status:** Early Development (Skeleton)  
-**Version:** 1.0 (MVP)  
-**Last Updated:** 2026-04-25
+**Status:** MVP Implementation Phase (Phases 1-5, 8 Complete)  
+**Version:** 1.0 (MVP Ready for UAT)  
+**Last Updated:** 2026-05-05
 
 ---
 
@@ -235,41 +235,65 @@ A web application that helps Vietnamese archival staff validate and package digi
 
 ## 5. Development Timeline
 
-### Phase 1: Setup & Core Infrastructure (Week 1-2)
+### Completed Phases (as of 2026-05-05)
+
+**Phase 1: Setup & Core Infrastructure (Week 1-2)** ✓
 - Docker Compose with backend + nginx + MongoDB + MinIO
 - Backend skeleton: Express app with CORS, routes structure
-- JWT auth + RBAC middleware
+- JWT auth + RBAC middleware (5 roles: Admin, Operator, Approver, Signer, Auditor)
 - MongoDB audit log collection
 
-### Phase 2: File Validation (Week 2-3)
+**Phase 2: File Validation (Week 2-3)** ✓
 - File structure validator (Attachment/ + Metadata/)
 - Excel parser (SheetJS)
-- Field-level validation engine (AJV + custom rules)
+- Field-level validation engine (11 types: string, date, positiveInt, enum, float, boolean, regex, email, url, range, dependent-enum)
 - Cross-validation (document count, code prefixes, PDF mapping)
 
-### Phase 3: UI & Data Editor (Week 3-4)
+**Phase 3: Frontend UI (Week 4-5)** ✓
 - File upload UI (drag & drop, folder picker)
-- Excel grid renderer (editable, error highlighting)
+- Excel grid renderer (editable, error highlighting, virtual scrolling)
 - Error panel with filtering + drill-down
 - Suggest fixes UI (show before/after, apply all/selective)
+- LoginPage + auth context + JWT interceptor
 
-### Phase 4: Workflow & Approval (Week 4-5)
-- Workflow state machine (UPLOAD → ... → DONE)
+**Phase 4: Workflow & Approval (Week 5-6)** ✓
+- Workflow state machine (UPLOAD → VALIDATING → VALIDATED → APPROVED → PACKAGING → DONE + REJECTED)
 - Approval UI (Approver role can approve/reject)
-- SIP packaging engine (METS/EAD/PREMIS generation)
-- Audit log integration
+- SIP packaging engine (METS/EAD/PREMIS generation via BullMQ async queue)
+- Audit log integration + dossier queue view
+- Notifications stub (ready for email/SMS integration)
 
-### Phase 5: Signing & Storage (Week 5-6)
-- XMLDSig signature implementation
+**Phase 5: SIP Packaging (Week 7-8)** ✓
+- METS.xml generation (METS 1.12)
+- EAD.xml generation (EAD 3)
+- PREMIS.xml generation (PREMIS 3)
+- SHA-256 checksum computation
+- ZIP packaging with proper structure
+- MinIO bucket integration (pdf-files/ + sip-files/)
+- Presigned URL generation (1-hour expiry)
+
+**Phase 8: Configuration Management & Testing (Week 10-12)** ✓
+- SystemConfigPage with 4 admin tabs (MinIO, enums, profiles, schema)
+- Profile CRUD system (create/read/update/delete validation profiles, TT05 default)
+- Dynamic enum/schema management (no restart required)
+- Extended field types (float, boolean, regex, email, url, range, dependent-enum)
+- Jest test suite (47 passing tests: unit + integration)
+- GitHub Actions CI pipeline
+- Security hardening (Helmet, CORS, rate limiting, Winston logging)
+
+### Deferred Phases
+
+**Phase 6: Digital Signature & Storage (Deferred to Phase 6 task)**
+- XMLDSig signature implementation (pending TSA service contract)
 - TSA timestamp integration
-- MinIO upload with retry
-- Presigned URL generation
+- Signed SIP upload to MinIO
+- **Current Status:** WebSocket notifications ✓, MinIO presigned URLs ✓, signing stub only
 
-### Phase 6: Dashboard & Polish (Week 6-7)
-- Dashboard with charts (stats, trends, filters)
+**Phase 7: Dashboard & Advanced Features (Deferred to Phase 7 task)**
+- Dashboard charts (Chart.js integration)
 - SIP Viewer (unzip, show tree, preview XML)
-- Admin rule editor (view/edit validation rules)
-- Docs + deployment guide
+- Audit log viewer UI
+- **Current Status:** Stats API ✓, SystemConfigPage provides admin UI, full dashboard deferred
 
 ---
 

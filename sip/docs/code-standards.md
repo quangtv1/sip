@@ -407,7 +407,7 @@ const hoSoSchema = new Schema({
 - **ERROR:** Actionable issues; validation failures, failed uploads
 - **FATAL:** System failure; database down, unhandled exception
 
-### Logging Framework (Planned: Winston)
+### Logging Framework (Winston)
 ```javascript
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',

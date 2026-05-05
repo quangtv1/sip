@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "skills": {
+    "codex-brainstorm": {
+      "source": "smithery.ai",
+      "sourceType": "well-known",
+      "computedHash": "eb0d4e84cf80a53a89acb529fe454e4c8647a4b59729bf58575eb143bc15451a"
+    },
+    "parallel-task": {
+      "source": "am-will/codex-skills",
+      "sourceType": "github",
+      "skillPath": "skills/parallel-task/SKILL.md",
+      "computedHash": "b88aec02a24a1c8f13d15d53b497c227cd76a3dafc500710192f243addff41f3"
+    },
+    "plan-harder": {
+      "source": "am-will/codex-skills",
+      "sourceType": "github",
+      "skillPath": "skills/plan-harder/SKILL.md",
+      "computedHash": "a5a22b3a135f349474a4a482992c264e5c6f8bdaa614517522420d334a810a12"
+    },
+    "planner": {
+      "source": "am-will/codex-skills",
+      "sourceType": "github",
+      "skillPath": "skills/planner/SKILL.md",
+      "computedHash": "ab1d97975dcf20cebe27960f1b0abd7e2db16fa31261aebe29342eca33076f91"
+    }
+  }
+}

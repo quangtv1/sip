@@ -106,7 +106,7 @@ export default function ProfileManagementTab() {
   }
 
   const columns = [
-    { title: 'ID',          dataIndex: 'id',            key: 'id', width: 120,
+    { title: 'ID',          dataIndex: 'id',            key: 'id', width: 200,
       render: (id) => (
         <Space>
           <Text code>{id}</Text>
